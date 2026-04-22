@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 function useCreateScan() {
   return useMutation({
     mutationFn: (data: { data: { url: string } }) =>
-      fetch("/api/scans", {
+      fetch(`${API_URL}/api/scans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data.data),
