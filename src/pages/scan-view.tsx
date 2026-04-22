@@ -8,10 +8,12 @@ import { ScoreRing } from "@/components/score-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+
 function useGetScan(id: number) {
   return useQuery({
     queryKey: ["scan", id],
-    queryFn: () => fetch(`/api/scans/${id}`).then((r) => r.json()),
+    queryFn: () => fetch(`${API_URL}/api/scans/${id}`).then((r) => r.json()),
     enabled: !!id,
     refetchInterval: (query: any) => {
       const status = query.state.data?.status;
