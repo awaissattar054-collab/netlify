@@ -1,13 +1,23 @@
-import { useGetScansSummary, useListScans, useDeleteScan, getListScansQueryKey, getGetScansSummaryQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shield, ShieldAlert, Leaf, Scale, Activity, Trash2, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { Layout } from "@/components/layout";
 import { ScanInput } from "@/components/scan-input";
+
+const API = "";
+
+function useGetScansSummary() {
+  return useQuery({ queryKey: ["scans-summary"], queryFn: () => fetch(`${API}/api/scans/summary`).then(r => r.json()) });
+}
+function useListScans() {
+  return useQuery({ queryKey: ["scans"], queryFn: () => fetch(`${API}/api/scans`).then(r => r.json()) });
+}
+function useDeleteScan() {
+  return useMutation({ mutationFn: ({ id }: { id: number }) => fetch(`${API}/api/scans/${id}`, { method: "DELETE" }).then(r => r.json()) });
+}
 
 export default function Home() {
   const queryClient = useQueryClient();
@@ -18,44 +28,37 @@ export default function Home() {
   const handleDelete = (id: number) => {
     deleteScan.mutate({ id }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListScansQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetScansSummaryQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ["scans"] });
+        queryClient.invalidateQueries({ queryKey: ["scans-summary"] });
       }
     });
   };
 
   return (
     <Layout>
-      {/* Hero Section */}
       <section className="relative py-24 flex flex-col items-center justify-center overflow-hidden border-b border-border/50">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-        
         <div className="relative z-10 container mx-auto px-4 flex flex-col items-center text-center">
           <div className="inline-flex items-center justify-center px-3 py-1 mb-8 text-xs font-mono tracking-widest text-primary border border-primary/20 bg-primary/5 uppercase">
             System Operational // Ready for Target
           </div>
-          
           <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 max-w-4xl leading-tight">
             COMPLIANCE <span className="text-primary font-serif italic">INTELLIGENCE</span> PROTOCOL
           </h1>
           <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mb-12 font-mono">
             Analyze targets for legal vulnerabilities, privacy risks, and carbon emission footprint in real-time.
           </p>
-
           <ScanInput />
         </div>
       </section>
 
       <div className="container mx-auto px-4 py-16 grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Stats Column */}
         <div className="lg:col-span-1 space-y-8">
           <div>
             <h2 className="font-mono text-xl font-bold mb-6 flex items-center gap-2 uppercase tracking-tight">
-              <Activity className="w-5 h-5 text-primary" />
-              Global Metrics
+              <Activity className="w-5 h-5 text-primary" /> Global Metrics
             </h2>
-            
             {loadingSummary ? (
               <div className="space-y-4">
                 <Skeleton className="h-24 w-full" />
@@ -64,17 +67,8 @@ export default function Home() {
               </div>
             ) : summary ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                <StatCard 
-                  title="Total Analyzed" 
-                  value={summary.completedScans.toString()} 
-                  subtitle={`${summary.totalScans} targets identified`}
-                />
-                <StatCard 
-                  title="Critical Vulnerabilities" 
-                  value={summary.criticalFindings.toString()} 
-                  valueClass="text-destructive"
-                  subtitle="Immediate action required"
-                />
+                <StatCard title="Total Analyzed" value={summary.completedScans?.toString() ?? "0"} subtitle={`${summary.totalScans} targets identified`} />
+                <StatCard title="Critical Vulnerabilities" value={summary.criticalFindings?.toString() ?? "0"} valueClass="text-destructive" subtitle="Immediate action required" />
                 <div className="bg-card border border-border/50 p-6 flex flex-col gap-4">
                   <h3 className="font-mono text-sm text-muted-foreground uppercase tracking-wider">Average Threat Scores</h3>
                   <div className="space-y-3">
@@ -88,15 +82,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* History Column */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-mono text-xl font-bold flex items-center gap-2 uppercase tracking-tight">
-              <Shield className="w-5 h-5 text-primary" />
-              Target History
+              <Shield className="w-5 h-5 text-primary" /> Target History
             </h2>
           </div>
-
           {loadingScans ? (
             <div className="space-y-4">
               <Skeleton className="h-20 w-full" />
@@ -113,7 +104,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-4">
-              {scans.map(scan => (
+              {scans.map((scan: any) => (
                 <div key={scan.id} className="group border border-border/50 bg-card hover:border-primary/50 transition-colors p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-12 ${scan.status === 'completed' ? 'bg-primary' : scan.status === 'failed' ? 'bg-destructive' : 'bg-yellow-500 animate-pulse'}`} />
@@ -131,7 +122,6 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-                  
                   <div className="flex items-center gap-6">
                     {scan.status === 'completed' && scan.overallScore !== null && (
                       <div className="hidden sm:flex flex-col items-end">
@@ -143,9 +133,7 @@ export default function Home() {
                     )}
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="icon" asChild className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/scan/${scan.id}`}>
-                          <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        <Link href={`/scan/${scan.id}`}><ArrowRight className="w-4 h-4" /></Link>
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(scan.id)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive">
                         <Trash2 className="w-4 h-4" />
@@ -178,16 +166,11 @@ function ScoreBar({ label, score, icon }: { label: string, score: number | null,
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs font-mono items-center">
-        <span className="flex items-center gap-1.5 text-muted-foreground">
-          {icon} {label}
-        </span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">{icon} {label}</span>
         <span className="font-bold">{score !== null ? score : '--'}</span>
       </div>
       <div className="h-1.5 bg-muted w-full overflow-hidden">
-        <div 
-          className="h-full bg-primary" 
-          style={{ width: `${score ?? 0}%` }}
-        />
+        <div className="h-full bg-primary" style={{ width: `${score ?? 0}%` }} />
       </div>
     </div>
   );
